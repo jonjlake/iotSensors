@@ -21,19 +21,65 @@
   function is_converged_percent($cost_old, $cost, $pct_diff_conv)
   {
     $pct_diff = 100 * ($cost - $cost_old) / $cost_old; 
+    echo "cost_old: $cost_old, cost: $cost, pct_diff: $pct_diff<br>";
     return abs($pct_diff) <= $pct_diff_conv; 
+  }
+
+  function test_is_converged_percent($pct_diff_conv, $cost_old, $cost, $converged_exp)
+  {
+    $converged_act = is_converged_percent($cost_old, $cost, $pct_diff_conv);
+    report_test_results("is_converged_percent", $converged_act, $converged_exp);
+  }
+
+  function test_is_converged_percent_false()
+  {
+    $pct_diff_conv = 0.1;
+    $cost_old = 25;
+    $cost = 25.2;
+    $converged_exp = FALSE;
+    test_is_converged_percent($pct_diff_conv, $cost_old, $cost, $converged_exp);
+  }
+
+  function test_is_converged_percent_true()
+  {
+    $pct_diff_conv = 0.1;
+    $cost_old = 25;
+    $cost = 25.02;
+    $converged_exp = TRUE;
+    test_is_converged_percent($pct_diff_conv, $cost_old, $cost, $converged_exp);
   }
 
   function dcost_dtheta0($theta0, $theta1, $x_vals, $y_vals)
   {
     $num_experiments = count($y_vals);
-    return cost($theta0, $theta1, $x_vals, $y_vals) / $num_experiments;
+    echo "dcost_dtheta0 num_experiments: $num_experiments<br>";
+    $sum = 0; 
+    for ($j = 0; $j < $num_experiments; ++$j)
+    {
+      $sum += hypothesis($theta0, $theta1, $x_vals[$j]);
+    }
+    
+    return $sum / $num_experiments;
+  }
+
+  function test_dcost_dtheta0()
+  {
   }
 
   function dcost_dtheta1($theta0, $theta1, $x_vals, $y_vals)
   {
     $num_experiments = count($y_vals);
-    return cost($theta0, $theta1, $x_vals, $y_vals) * $theta1 / $num_experiments;
+    echo "dcost_dtheta1 num_experiments: $num_experiments<br>";
+    $sum = 0;
+    for ($j = 0; $j < $num_experiments; ++$j)
+    {
+      $sum += (hypothesis($theta0, $theta1, $x_vals[$j]) - $y_vals[$j]) * $x_vals[$j];
+    }
+    return $sum / $num_experiments;
+  }
+
+  function test_dcost_dtheta1()
+  {
   }
 
   function gradient_descent($x_vals, $y_vals, $alpha)
@@ -43,20 +89,31 @@
     $theta0_new = 0;
     $theta1_new = 0;
     $max_iterations = 1000;
+//    $max_iterations = 4;
+    $pct_diff_conv = 0.01;
     for ($j = 0; $j < $max_iterations; ++$j)
     {
       $theta0_new = $theta0_i - $alpha * dcost_dtheta0($theta0_i, $theta1_i, $x_vals, $y_vals);
       $theta1_new = $theta1_i - $alpha * dcost_dtheta1($theta0_i, $theta1_i, $x_vals, $y_vals);
-     
+    
+      echo "t0old: $theta0_i, t0: $theta0_new<br>";
+      echo "t1old: $theta1_i, t1: $theta1_new<br>";
+ 
       $cost_old = cost($theta0_i, $theta1_i, $x_vals, $y_vals);
       $cost = cost($theta0_new, $theta1_new, $x_vals, $y_vals); 
-      if (is_converged_percent($cost_old, $cost, $pct_diff_conv)
+      if (is_converged_percent($cost_old, $cost, $pct_diff_conv))
       {
+        echo "Converged!<br>";
         break;
       }
-      if ($j = $max_iterations - 1)
+      else
       {
-        echo "Failed to converge in $max_iterations iterations";
+        echo "Not converged. Waiting for $pct_diff_conv pct<br>";
+      }
+
+      if ($max_iterations - 1 === $j)
+      {
+        echo "Failed to converge in $max_iterations iterations<br>";
       }
       $theta0_i = $theta0_new;
       $theta1_i = $theta1_new; 
@@ -67,8 +124,8 @@
 
   function test_gradient_descent()
   {
-    $x_vals = array();
-    $y_vals = array();
+    $x_vals = array(1, 2, 3);
+    $y_vals = array(2.5, 7.5, 11);
     $alpha = 0.001;
     $theta_exp = array(0, 0);
     $theta_act = gradient_descent($x_vals, $y_vals, $alpha);
@@ -89,7 +146,6 @@
     $y_exp = 14;
 
     $y_act = hypothesis($theta0, $theta1, $x);
-//    echo "Hypothesis test: y_exp: $y_exp, y_act: $y_act";
     report_test_results("hypothesis", $y_act, $y_exp);
   }
 
@@ -109,6 +165,8 @@
   {
     test_hypothesis();
     test_cost();
+    test_is_converged_percent_false();
+    test_is_converged_percent_true();
     test_gradient_descent();
   }
 ?>
